@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BricoBlack 2026 — Radar & Simulador Leroy Merlin</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg-body: #0d1417;
+      --bg-card: #151e22;
+      --bg-card-inner: #11191d;
+      --border-card: #243238;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --lm-green: #65a30d;
+      --lm-green-bright: #4ade80;
+      --lm-green-dark: #14532d;
+      --lm-amber: #f59e0b;
+      --lm-red: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg-body); color: var(--text-main); line-height: 1.45; }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 18px 22px 44px; }
+
+    /* Top Bar matching Calculadora de MSV */
+    .topbar {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 14px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .brand-left { display: flex; align-items: center; gap: 16px; }
+    .lm-triangle {
+      width: 0; height: 0;
+      border-left: 24px solid transparent;
+      border-right: 24px solid transparent;
+      border-bottom: 34px solid #65a30d;
+      flex-shrink: 0;
+    }
+    .brand-titles h1 { font-size: 18px; font-weight: 800; color: #fff; }
+    .brand-titles p { font-size: 12px; color: var(--text-muted); }
+    .topbar-btns { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+    .btn {
+      border: 1px solid #334155;
+      background: #1b262c;
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.15s ease;
+    }
+    .btn:hover { background: #243239; border-color: #475569; }
+    .btn-pill-green {
+      background: rgba(101, 163, 13, 0.16);
+      border: 1px solid rgba(101, 163, 13, 0.5);
+      color: #84cc16;
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .btn-primary {
+      background: #65a30d;
+      border-color: #65a30d;
+      color: #fff;
+      font-weight: 700;
+    }
+    .btn-primary:hover { background: #4d7c0f; }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-danger-outline {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+    .btn-danger-outline:hover { background: rgba(239, 68, 68, 0.2); }
+
+    /* Mode Tabs */
+    .mode-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tab {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      color: var(--text-muted);
+      padding: 9px 16px;
+      border-radius: 9px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .tab.active {
+      background: rgba(101, 163, 13, 0.2);
+      border-color: #65a30d;
+      color: #a3e635;
+    }
+
+    /* Cards */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+    @media (max-width: 960px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+    .grid-2 .card { margin-bottom: 0; }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* White Inputs inside Dark Cards */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+    .light-input {
+      background: #ffffff;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 700;
+      width: 100%;
+      outline: none;
+    }
+    .light-input:focus { border-color: #65a30d; box-shadow: 0 0 0 3px rgba(101, 163, 13, 0.25); }
+
+    .quick-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .q-chip {
+      background: #1d282e;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .q-chip:hover { border-color: #65a30d; color: #a3e635; }
+
+    /* Right Card Key-Value Rows */
+    .kv-list { display: flex; flex-direction: column; }
+    .kv-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #202c32;
+      font-size: 13.5px;
+    }
+    .kv-row:last-child { border-bottom: none; }
+    .kv-key { color: var(--text-muted); font-weight: 500; }
+    .kv-val { font-weight: 700; color: #fff; }
+    .kv-val.amber { color: var(--lm-amber); }
+    .kv-val.green { color: var(--lm-green-bright); }
+    .kv-val.red { color: var(--lm-red); }
+
+    /* Single Clean Store Doping Alert Banner */
+    .store-doping-strip {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #11191d;
+      border: 1px solid #243238;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+    }
+    .store-doping-strip.danger {
+      background: rgba(239, 68, 68, 0.14);
+      border-color: rgba(239, 68, 68, 0.45);
+    }
+
+    /* Decision Panel Boxes */
+    .decision-3col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+    @media (max-width: 820px) { .decision-3col { grid-template-columns: 1fr; } }
+    .dec-box {
+      background: var(--bg-card-inner);
+      border: 1px solid var(--border-card);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+    .dec-box.danger {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+    .dec-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
+    .dec-big { font-size: 26px; font-weight: 800; color: var(--lm-green-bright); }
+    .dec-big.amber { color: var(--lm-amber); }
+    .dec-big.red { color: var(--lm-red); }
+    .dec-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-weight: 600; }
+
+    /* Steps & Advice */
+    .advice-bar {
+      background: #11191d;
+      border: 1px solid #26353c;
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 14px;
+    }
+    .advice-bar.danger { background: rgba(239, 68, 68, 0.14); border-color: rgba(239, 68, 68, 0.45); color: #fecaca; }
+    .advice-bar.success { background: rgba(74, 222, 128, 0.1); border-color: rgba(74, 222, 128, 0.35); color: #bbf7d0; }
+
+    .steps-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    @media (max-width: 900px) { .steps-grid { grid-template-columns: repeat(2, 1fr); } }
+    .step-chip {
+      background: #11191d;
+      border: 1px solid #243238;
+      border-radius: 8px;
+      padding: 9px 10px;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .step-chip:hover { border-color: #65a30d; background: #182328; }
+
+    /* Black Block Drawer (Independent 8-Day Accumulator) */
+    .black-drawer {
+      background: #151e22;
+      border: 1px solid #65a30d;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 18px;
+      display: none;
+    }
+    .black-drawer.visible { display: block; }
+    .days-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .day-pill {
+      padding: 5px 10px;
+      border-radius: 7px;
+      font-size: 11.5px;
+      font-weight: 700;
+      border: 1px solid #2c3c44;
+      background: #11191d;
+      color: #64748b;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .day-pill.loaded {
+      background: rgba(101, 163, 13, 0.18);
+      border-color: #65a30d;
+      color: #a3e635;
+    }
+    .day-pill button {
+      background: none;
+      border: none;
+      color: #fca5a5;
+      font-weight: 900;
+      cursor: pointer;
+      font-size: 11px;
+      padding-left: 2px;
+    }
+    .black-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
+    @media (max-width: 850px) { .black-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .bk-item { background: #11191d; border: 1px solid #243238; border-radius: 8px; padding: 10px 12px; }
+
+    /* Ranking Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      background: #11191d;
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      padding: 10px;
+      border-bottom: 1px solid #2b3a42;
+      text-align: center;
+      white-space: nowrap;
+    }
+    th.left, td.left { text-align: left; }
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid #1e292f;
+      text-align: center;
+      white-space: nowrap;
+      color: #e2e8f0;
+    }
+    tr:hover { background: #1a252b; }
+    tr.my-store { background: rgba(101, 163, 13, 0.22) !important; font-weight: 700; }
+    tr.doping-row { background: rgba(239, 68, 68, 0.14); }
+    .col-pts { color: #fbbf24; font-weight: 800; }
+    .col-total { color: #4ade80; font-weight: 900; font-size: 14px; }
+    .badge-dop { background: rgba(239, 68, 68, 0.25); color: #fca5a5; border: 1px solid #ef4444; padding: 2px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 999;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #151e22;
+      border: 1px solid #2e3f47;
+      border-radius: 12px;
+      max-width: 680px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .dropzone {
+      border: 2px dashed #3b4f59;
+      border-radius: 10px;
+      padding: 18px;
+      text-align: center;
+      background: #11191d;
+      cursor: pointer;
+    }
+    .dropzone:hover { border-color: #65a30d; }
+
+    /* Guide Modal Styling */
+    .guide-step {
+      background: #11191d;
+      border: 1px solid #243238;
+      border-radius: 9px;
+      padding: 12px 14px;
+    }
+    .guide-step h4 { color: #a3e635; font-size: 13.5px; margin-bottom: 4px; }
+    .guide-step p, .guide-step li { font-size: 12.5px; color: #cbd5e1; }
+    .guide-step ul { padding-left: 18px; margin-top: 4px; display: flex; flex-direction: column; gap: 3px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- HEADER (Matching Calculadora de MSV Leroy Merlin) -->
+    <header class="topbar">
+      <div class="brand-left">
+        <div class="lm-triangle"></div>
+        <div class="brand-titles">
+          <h1>Radar de Pontuação & Margem Leroy Merlin</h1>
+          <p>Simulador em Tempo Real • 47 Lojas Físicas (GSB + Compactas)</p>
+        </div>
+      </div>
+      <div class="topbar-btns">
+        <button class="btn" onclick="openGuideModal()">📘 Como Usar (Guia)</button>
+        <button class="btn" onclick="openImportModal()">📊 Importar Relatório (.xlsx)</button>
+        <button class="btn" onclick="openMarginModal()">⚙️ Metas da Loja (15 Seções)</button>
+        <button class="btn" onclick="downloadGitHubHTML()">⬇ Baixar index.html</button>
+        <span class="btn-pill-green">BricoBlack 2026</span>
+      </div>
+    </header>
+
+    <!-- MODE SWITCH & AVG SELECT -->
+    <div class="mode-row">
+      <div class="tabs">
+        <button id="tabDaily" class="tab active" onclick="setMode('daily')">📅 Fase Diária (29/10 – 22/11) • 1x</button>
+        <button id="tabBlack" class="tab" onclick="setMode('black')">🔥 Bloco Black (23/11 – 30/11) • Acumulado 8 Dias (2x)</button>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:12px; color:var(--text-muted); font-weight:600;">Média % Nacional:</span>
+        <select id="avgModeSelect" class="light-input" style="padding:6px 10px; font-size:12.5px; width:auto;" onchange="recalculateAll()">
+          <option value="weighted">Ponderada (Soma / Soma A-1)</option>
+          <option value="simple">Média Simples (47 Lojas)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- BLACK BLOCK DRAWER (Independent 8-Day Accumulator 23/11 to 30/11) -->
+    <section id="blackPanel" class="black-drawer">
+      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
+        <div>
+          <strong style="font-size:14px; color:#a3e635;">🔥 Bloco Black Consolidado (23/11 a 30/11) — Base Independente & Acúmulo Diário</strong>
+          <div style="font-size:12px; color:var(--text-muted);">
+            Suba o relatório diário de cada dia (Dia 1 a Dia 8). O painel soma <b>Dia 1 + Dia 2 + ...</b>, calcula a <b>MSV % ponderada acumulada</b> e multiplica os pontos por <b>2x</b>.
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="btn btn-primary" style="padding:6px 12px; font-size:12px;" onclick="openImportModal()">+ Lançar Dia do Bloco</button>
+          <button class="btn btn-danger-outline" style="padding:6px 10px; font-size:11.5px;" onclick="clearCurrentSectionBlackBlock()">Limpar Bloco da Seção</button>
+        </div>
+      </div>
+
+      <!-- Status dos 8 dias da seção atual -->
+      <div id="blackDaysPills" class="days-pills"></div>
+
+      <div class="black-kpis">
+        <div class="bk-item">
+          <div style="font-size:11px; color:var(--text-muted);">BASE N-1 ACUMULADA (DIAS LANÇADOS)</div>
+          <div id="bkBaseA1" style="font-size:17px; font-weight:800; margin-top:3px;">R$ 0</div>
+        </div>
+        <div class="bk-item">
+          <div style="font-size:11px; color:var(--text-muted);">VENDA ACUMULADA NO BLOCO</div>
+          <div id="bkVendaAtual" style="font-size:17px; font-weight:800; color:#4ade80; margin-top:3px;">R$ 0</div>
+        </div>
+        <div class="bk-item">
+          <div style="font-size:11px; color:var(--text-muted);">PONTUAÇÃO PROJETADA (2X)</div>
+          <div id="bkPts2x" style="font-size:17px; font-weight:800; color:#fbbf24; margin-top:3px;">0 pts</div>
+        </div>
+        <div class="bk-item">
+          <div style="font-size:11px; color:var(--text-muted);">MSV % ACUMULADA DO BLOCO</div>
+          <div id="bkMsvAcc" style="font-size:17px; font-weight:800; color:#38bdf8; margin-top:3px;">0,00%</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOP 2-COLUMN CARDS -->
+    <div class="grid-2">
+
+      <!-- LEFT CARD: Seção & Simulador de Queima -->
+      <div class="card">
+        <div class="card-title">
+          <span id="leftCardHeading">Seção & Simulador de Venda (Fase Diária)</span>
+          <span style="font-size:12px; color:#a3e635; font-weight:700;">35-Curitiba Atuba</span>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label>Loja</label>
+            <select id="myStoreSelect" class="light-input" onchange="onMyStoreChange()"></select>
+          </div>
+          <div class="field">
+            <label>Seção</label>
+            <select id="sectionSelect" class="light-input" onchange="onSectionChange()"></select>
+          </div>
+          <div class="field">
+            <label id="lblVendaAtual">Venda Atual Real (R$)</label>
+            <input type="text" id="displayVendaAtual" class="light-input" readonly style="background:#e2e8f0; color:#334155;" />
+          </div>
+          <div class="field">
+            <label id="lblMargemAtual">Margem Atual Seção (%)</label>
+            <input type="text" id="displayMargemAtual" class="light-input" readonly style="background:#e2e8f0; color:#334155;" />
+          </div>
+          <div class="field">
+            <label>Simular Venda Extra / Queima (R$)</label>
+            <input type="number" id="extraSalesInput" class="light-input" value="0" step="500" min="0" oninput="recalculateAll()" />
+          </div>
+          <div class="field">
+            <label>Margem da Venda Extra (%)</label>
+            <input type="number" id="extraMarginInput" class="light-input" value="15.0" step="0.5" oninput="recalculateAll()" />
+          </div>
+        </div>
+
+        <div class="quick-row">
+          <button class="q-chip" onclick="addExtraSales(2000)">+R$ 2k</button>
+          <button class="q-chip" onclick="addExtraSales(5000)">+R$ 5k</button>
+          <button class="q-chip" onclick="addExtraSales(10000)">+R$ 10k</button>
+          <button class="q-chip" onclick="addExtraSales(20000)">+R$ 20k</button>
+          <button class="q-chip" style="color:#fca5a5;" onclick="setExtraSales(0)">Zerar</button>
+          <button id="commitSaleBtn" class="btn btn-primary" style="margin-left:auto; padding:6px 12px; font-size:12px;" onclick="commitSimulatedSale()" disabled>
+            ✅ Efetivar Venda na Base
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT CARD: Dados da Seção & Trava Loja -->
+      <div class="card">
+        <div class="card-title">
+          <span>Dados da Seção (Novembro)</span>
+          <span id="secShortBadge" style="font-size:12px; color:var(--text-muted);">Seção 02</span>
+        </div>
+
+        <div class="kv-list">
+          <div class="kv-row">
+            <span class="kv-key">Venda A-1 (Base Comparativa)</span>
+            <span id="kvVendaA1" class="kv-val">R$ 0</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key">Margem Meta Seção (% MSV)</span>
+            <span id="kvMetaSec" class="kv-val">18,76%</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key">MSV DOPPING Seção (-30%)</span>
+            <span id="kvMinSec" class="kv-val amber">13,13%</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key">Pontuação Atual (Prog % + Prog R$)</span>
+            <span id="kvPtsDetail" class="kv-val green">0 pts (0 + 0)</span>
+          </div>
+        </div>
+
+        <!-- SINGLE CLEAN STORE DOPING ALERT -->
+        <div id="storeDopingStrip" class="store-doping-strip">
+          <div>
+            <span style="color:var(--text-muted); font-weight:600;">Trava Loja Atuba (Mín 12,66%):</span>
+            <span id="storeDopingStatusText" style="color:#4ade80; font-weight:700; margin-left:4px;">✓ OK</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:5px;">
+            <span style="font-size:11.5px; color:var(--text-muted);">MSV Loja:</span>
+            <input type="number" id="storeMsvRealInput" class="light-input" step="0.1" value="18.20" style="width:74px; padding:4px 8px; font-size:12.5px; text-align:right;" oninput="updateStoreMsvReal(this.value)" />
+            <span style="font-size:12px; font-weight:700;">%</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- DECISION & MARGIN PANEL -->
+    <div class="card">
+      <div class="card-title">
+        <span>Painel de Decisão, Pontuação & Margem</span>
+        <span id="decModeBadge" style="font-size:12px; color:var(--text-muted);">Apuração Diária (1x)</span>
+      </div>
+
+      <div class="decision-3col">
+        <div class="dec-box">
+          <div class="dec-label">Posição no Ranking Nacional</div>
+          <div id="decRankVal" class="dec-big">38º → 38º</div>
+          <div id="decRankSub" class="dec-sub">Mesma posição entre 47 lojas</div>
+        </div>
+
+        <div class="dec-box">
+          <div class="dec-label">Pontuação Projetada no Período</div>
+          <div id="decPtsVal" class="dec-big">0 → 0 pts</div>
+          <div id="decPtsSub" class="dec-sub">+0 pts na simulação</div>
+        </div>
+
+        <div id="decDopingBox" class="dec-box">
+          <div class="dec-label">Margem Projetada vs MSV Dopping Mínimo</div>
+          <div id="decMarginVal" class="dec-big amber">21,09%</div>
+          <div id="decMarginSub" class="dec-sub" style="color:#4ade80;">Mínimo: 13,13% • Margem sob controle</div>
+        </div>
+      </div>
+
+      <div id="simAdviceBanner" class="advice-bar">
+        Analisando margem e degraus de pontuação...
+      </div>
+
+      <div style="font-size:11.5px; color:var(--text-muted); font-weight:700; text-transform:uppercase; margin-bottom:8px;">
+        Degraus Rápidos — Clique para simular quanto faturar e subir pontos:
+      </div>
+      <div id="stepsList" class="steps-grid"></div>
+    </div>
+
+    <!-- RANKING TABLE CARD -->
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--border-card); display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
+        <div>
+          <strong style="font-size:15px; color:#fff;" id="tableTitle">Ranking Nacional em Tempo Real — 02 - Carpintaria e Madeiras (47 Lojas)</strong>
+          <div style="font-size:12px; color:var(--text-muted);" id="tableSub">Média Nacional %: -21,25% • Média Nacional R$: -R$ 5.743</div>
+        </div>
+        <input type="text" id="searchStoreInput" class="light-input" placeholder="Buscar loja..." style="width:210px; padding:7px 12px; font-size:12.5px;" oninput="recalculateAll()" />
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Pos</th>
+              <th class="left">Loja (GSB + Compactas)</th>
+              <th>Venda R$</th>
+              <th>Venda N-1</th>
+              <th>Progressão %</th>
+              <th>Média %</th>
+              <th>Pts Prog %</th>
+              <th>Progressão R$</th>
+              <th>Média R$</th>
+              <th>Pts Prog R$</th>
+              <th>MSV % Real</th>
+              <th>Total Período</th>
+            </tr>
+          </thead>
+          <tbody id="rankingTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- IMPORT MODAL -->
+  <div id="importModal" class="modal-backdrop">
+    <div class="modal">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 id="importModalTitle" style="font-size:16px; color:#fff;">📊 Importar Relatório em Tempo Real (.xlsx / Colar)</h3>
+        <button class="btn" style="padding:4px 10px;" onclick="closeImportModal()">✕</button>
+      </div>
+      <div id="importModalDesc" style="font-size:12.5px; color:var(--text-muted);">
+        Selecione a <b>Seção Destino</b> e suba o Excel exportado do Qlik (<code>Loja | Venda | Venda A-1 | Prog % | Objetivo | %MSV | %MSV A-1</code>). As lojas Express são ignoradas automaticamente.
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:12px; font-weight:700; white-space:nowrap;">Seção Destino:</span>
+        <select id="importSectionSelect" class="light-input" style="flex:1; padding:8px 12px;"></select>
+      </div>
+      <!-- Day selector shown ONLY when in Bloco Black mode -->
+      <div id="importBlackDayRow" style="display:none; align-items:center; gap:10px; background:#11191d; border:1px solid #65a30d; padding:10px 12px; border-radius:8px;">
+        <span style="font-size:12px; font-weight:700; color:#a3e635; white-space:nowrap;">Dia do Bloco Black:</span>
+        <select id="importBlackDaySelect" class="light-input" style="flex:1; padding:7px 10px;">
+          <option value="1">Dia 1 — 23/11 (Segunda)</option>
+          <option value="2">Dia 2 — 24/11 (Terça)</option>
+          <option value="3">Dia 3 — 25/11 (Quarta)</option>
+          <option value="4">Dia 4 — 26/11 (Quinta)</option>
+          <option value="5">Dia 5 — 27/11 (Sexta Black Friday)</option>
+          <option value="6">Dia 6 — 28/11 (Sábado)</option>
+          <option value="7">Dia 7 — 29/11 (Domingo)</option>
+          <option value="8">Dia 8 — 30/11 (Segunda Cyber)</option>
+        </select>
+      </div>
+      <div class="dropzone" onclick="document.getElementById('fileInput').click()">
+        <div style="font-size:22px; margin-bottom:4px;">📁</div>
+        <div style="font-weight:700; font-size:13px; color:#fff;">Clique aqui para selecionar o arquivo Excel (.xlsx / .csv)</div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleFileUpload(event)" />
+      </div>
+      <textarea id="pasteArea" class="light-input" rows="4" style="font-family:monospace; font-size:12px;" placeholder="Ou cole as linhas copiadas do Excel / Qlik aqui..."></textarea>
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn" onclick="closeImportModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="processPastedText()">Aplicar Dados Colados</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- METAS ATUBA MODAL -->
+  <div id="marginModal" class="modal-backdrop">
+    <div class="modal" style="max-width:580px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:16px; color:#fff;">⚙️ Metas Travadas — 35-Curitiba Atuba (Novembro)</h3>
+        <button class="btn" style="padding:4px 10px;" onclick="closeMarginModal()">✕</button>
+      </div>
+      <div style="font-size:12.5px; color:var(--text-muted);">
+        Objetivos oficiais de <b>% MSV</b> travados por seção e piso anti-doping (-30%). Meta Global da Loja Atuba: <b>18,09%</b> (Piso: <b>12,66%</b>).
+      </div>
+      <div style="max-height:360px; overflow-y:auto; border:1px solid var(--border-card); border-radius:8px;">
+        <table>
+          <thead>
+            <tr>
+              <th class="left">Seção</th>
+              <th>MSV % Real</th>
+              <th>MSV % Meta</th>
+              <th>Piso Dopping (-30%)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="marginModalTbody"></tbody>
+        </table>
+      </div>
+      <div style="display:flex; justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="closeMarginModal()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GUIA COMO USAR MODAL -->
+  <div id="guideModal" class="modal-backdrop">
+    <div class="modal" style="max-width:700px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:16px; color:#fff;">📘 Como Usar o Radar & Simulador BricoBlack 2026</h3>
+        <button class="btn" style="padding:4px 10px;" onclick="closeGuideModal()">✕</button>
+      </div>
+
+      <div class="guide-step">
+        <h4>1. Diferença entre as 2 Abas (Bases 100% Independentes)</h4>
+        <ul>
+          <li><b>📅 Fase Diária (29/10 – 22/11) • 1x:</b> Mede a pontuação do <b>dia atual</b>. Cada relatório importado substitui a fotografia do dia na seção escolhida.</li>
+          <li><b>🔥 Bloco Black (23/11 – 30/11) • Acumulado 8 Dias (2x):</b> Nos 8 dias finais sem ranking oficial, cada dia importado fica salvo na memória daquele dia (<code>23/11</code> a <code>30/11</code>). O painel soma automaticamente <b>Dia 1 + Dia 2 + ... + Dia 8</b> para todas as 47 lojas e dobra os pontos (<b>2x</b>).</li>
+        </ul>
+      </div>
+
+      <div class="guide-step">
+        <h4>2. Como Importar o Relatório do Qlik</h4>
+        <ul>
+          <li>Exporte do Qlik a tabela com as colunas: <code>Loja | Venda | Venda A-1 | Prog % | Objetivo | %MSV | %MSV A-1</code>.</li>
+          <li>Clique em <b>📊 Importar Relatório (.xlsx)</b>, selecione a <b>Seção Destino</b> (e na aba Bloco Black escolha também qual <b>Dia do Bloco</b> está subindo) e selecione o arquivo.</li>
+          <li>As <b>7 lojas Express</b> são excluídas automaticamente, mantendo apenas as <b>47 lojas físicas (GSB + Compactas)</b>. Se reimportar um mesmo dia do Bloco Black, ele atualiza apenas aquele dia sem duplicar valores.</li>
+        </ul>
+      </div>
+
+      <div class="guide-step">
+        <h4>3. Regra de Pontuação Oficial</h4>
+        <ul>
+          <li>São avaliados dois rankings independentes: <b>Progressão %</b> e <b>Progressão R$</b> contra o ano anterior (N-1).</li>
+          <li>Apenas as lojas que ficarem <b>acima da Média Nacional</b> pontuam. Se <i>N</i> lojas superarem a média em um critério, o 1º lugar ganha <i>N</i> pontos, o 2º ganha <i>N-1</i>, até o último acima da média ganhar 1 ponto.</li>
+        </ul>
+      </div>
+
+      <div class="guide-step">
+        <h4>4. Trava Anti-Doping (-30%) & Queima de Carteira</h4>
+        <ul>
+          <li><b>Trava por Seção:</b> A margem real da seção não pode cair mais de 30% abaixo da Meta MSV (metas da <b>35-Curitiba Atuba</b> já travadas em <i>⚙️ Metas da Loja</i>).</li>
+          <li><b>Regra no Bloco Black (23–30/11):</b> Você pode passar dos -30% em um dia isolado (ex: Sexta Black) para queimar carteira, desde que a <b>MSV % ponderada acumulada dos 8 dias</b> feche acima do piso mínimo!</li>
+          <li><b>Trava Global da Loja Atuba:</b> Se a margem geral da loja (informada no campo <i>MSV Loja</i>) ficar abaixo de <b>12,66%</b> (70% de 18,09%), <b>todas as 15 seções zeram a pontuação</b>.</li>
+          <li><b>Simulador:</b> Digite um valor extra em R$ e a margem da negociação para ver quantos pontos ganha. Na Fase Diária, ao fechar a venda, clique em <b>✅ Efetivar Venda na Base</b>.</li>
+        </ul>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="closeGuideModal()">Entendi, vamos lá!</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SECTIONS = [
+      "01 - Materiais de Construção",
+      "02 - Carpintaria e Madeiras",
+      "03 - Eletricidade",
+      "04 - Ferramentas",
+      "05 - Pisos Laminados e Vinílicos",
+      "06 - Cerâmica",
+      "07 - Sanitários",
+      "08 - Encanamentos",
+      "09 - Jardim",
+      "10 - Ferragens",
+      "11 - Pintura",
+      "12 - Decoração",
+      "13 - Iluminação",
+      "14 - Organização",
+      "15 - Cozinhas"
+    ];
+
+    const BLACK_DAYS = [
+      { day: 1, label: "23/11 (Seg)" },
+      { day: 2, label: "24/11 (Ter)" },
+      { day: 3, label: "25/11 (Qua)" },
+      { day: 4, label: "26/11 (Qui)" },
+      { day: 5, label: "27/11 (Sex)" },
+      { day: 6, label: "28/11 (Sáb)" },
+      { day: 7, label: "29/11 (Dom)" },
+      { day: 8, label: "30/11 (Seg)" }
+    ];
+
+    const ATUBA_FIXED_TARGETS = {
+      "01 - Materiais de Construção": 10.40,
+      "02 - Carpintaria e Madeiras": 18.76,
+      "03 - Eletricidade": 11.35,
+      "04 - Ferramentas": 18.19,
+      "05 - Pisos Laminados e Vinílicos": 14.26,
+      "06 - Cerâmica": 16.64,
+      "07 - Sanitários": 16.33,
+      "08 - Encanamentos": 26.17,
+      "09 - Jardim": 16.33,
+      "10 - Ferragens": 22.54,
+      "11 - Pintura": 21.90,
+      "12 - Decoração": 31.05,
+      "13 - Iluminação": 30.64,
+      "14 - Organização": 22.67,
+      "15 - Cozinhas": 14.95
+    };
+    const ATUBA_STORE_OBJ = 18.09;
+
+    const INITIAL_47_STORES = [
+  { loja: "59-Salvador", venda: 66473.88, vendaA1: 43227.43, msv: 20.9, msvObj: 21.44 },
+  { loja: "05-Raposo Tavares", venda: 47688.66, vendaA1: 38325.71, msv: 23.61, msvObj: 14.26 },
+  { loja: "38-Fortaleza", venda: 46065.11, vendaA1: 62874.09, msv: 18.96, msvObj: 14.09 },
+  { loja: "11-Rio Barra", venda: 42552.53, vendaA1: 44933.68, msv: 20.09, msvObj: 16.76 },
+  { loja: "44-Campo Grande", venda: 42304.7, vendaA1: 11101.48, msv: 18.04, msvObj: 21.2 },
+  { loja: "46-Tamboré", venda: 36071.26, vendaA1: 20466.15, msv: 18.42, msvObj: 24.74 },
+  { loja: "12-Morumbi", venda: 35890.03, vendaA1: 102116.62, msv: 21.56, msvObj: 19.31 },
+  { loja: "19-Porto Alegre", venda: 34697.17, vendaA1: 47449.08, msv: 19.1, msvObj: 19.64 },
+  { loja: "16-Ricardo Jafet", venda: 34316.76, vendaA1: 40860.38, msv: 23.76, msvObj: 18.59 },
+  { loja: "58-Marginal Tietê 2", venda: 32939.55, vendaA1: 52601.73, msv: 18.97, msvObj: 19.1 },
+  { loja: "01-Interlagos", venda: 27772.2, vendaA1: 32105.03, msv: 13.87, msvObj: 20.56 },
+  { loja: "13-Brasília Sul", venda: 25838.46, vendaA1: 22656.61, msv: 5.94, msvObj: 23.82 },
+  { loja: "28-Brasília Norte", venda: 24841.83, vendaA1: 10915.75, msv: 12.66, msvObj: 28.38 },
+  { loja: "39-São José", venda: 24174.31, vendaA1: 19890.48, msv: 19.21, msvObj: 20.35 },
+  { loja: "50-Maceio", venda: 23567.33, vendaA1: 47218.56, msv: 24.85, msvObj: 17.28 },
+  { loja: "42-Jaguaré", venda: 21516.97, vendaA1: 16610.42, msv: 22.05, msvObj: 20.22 },
+  { loja: "56-Jundiaí", venda: 21107.76, vendaA1: 9622.44, msv: 25.69, msvObj: 18.16 },
+  { loja: "21-Niteroi", venda: 21021.9, vendaA1: 22794.91, msv: 19.21, msvObj: 18.48 },
+  { loja: "15-São José Dos Campos", venda: 20296.59, vendaA1: 35637.73, msv: 15.71, msvObj: 17.51 },
+  { loja: "45-São Bernardo", venda: 19699.19, vendaA1: 23932.23, msv: 23.48, msvObj: 19.91 },
+  { loja: "62-Santos", venda: 19669.08, vendaA1: 15839.41, msv: 20.55, msvObj: 17.15 },
+  { loja: "22-Anhanguera", venda: 18796.92, vendaA1: 12652.84, msv: 20.14, msvObj: 19.54 },
+  { loja: "03-Campinas D. Pedro", venda: 18752.77, vendaA1: 43014.49, msv: 24.3, msvObj: 19.29 },
+  { loja: "32-São Leopoldo", venda: 18709.85, vendaA1: 14104.03, msv: 16.22, msvObj: 18.24 },
+  { loja: "63-Poa Estaleiro", venda: 17993.37, vendaA1: 21405.48, msv: 26.25, msvObj: 20.15 },
+  { loja: "04-Contagem", venda: 17317.14, vendaA1: 35961.91, msv: 14.61, msvObj: 16.78 },
+  { loja: "07-Rio Norte", venda: 17244.61, vendaA1: 42221.45, msv: 9.44, msvObj: 4.84 },
+  { loja: "18-Goiania", venda: 16377.49, vendaA1: 21849.96, msv: 14.83, msvObj: 12.44 },
+  { loja: "10-São Caetano", venda: 16284.97, vendaA1: 18082.96, msv: 21.07, msvObj: 18.74 },
+  { loja: "41-Anália Franco", venda: 15815.24, vendaA1: 2605.46, msv: 27.29, msvObj: 41.04 },
+  { loja: "27-Sorocaba", venda: 15141.61, vendaA1: 23046.0, msv: 23.72, msvObj: 19.21 },
+  { loja: "57-Vitória", venda: 14524.32, vendaA1: 24192.31, msv: 23.72, msvObj: 22.38 },
+  { loja: "09-Curitiba", venda: 14499.29, vendaA1: 21363.77, msv: 16.91, msvObj: 17.85 },
+  { loja: "24-Lar Center", venda: 14222.98, vendaA1: 25899.18, msv: 26.0, msvObj: 22.45 },
+  { loja: "02-Ribeirão Preto", venda: 13273.12, vendaA1: 14882.48, msv: 25.68, msvObj: 19.24 },
+  { loja: "33-Londrina", venda: 12010.95, vendaA1: 10686.78, msv: 20.5, msvObj: 19.01 },
+  { loja: "49-Natal", venda: 11821.6, vendaA1: 28541.14, msv: 27.1, msvObj: 20.48 },
+  { loja: "35-Curitiba Atuba", venda: 11341.24, vendaA1: 34590.15, msv: 21.09, msvObj: 18.76 },
+  { loja: "36-Bh Norte", venda: 11196.17, vendaA1: 22371.26, msv: 18.7, msvObj: 19.4 },
+  { loja: "78-Bauru", venda: 10186.81, vendaA1: 5579.98, msv: 28.21, msvObj: 13.3 },
+  { loja: "67-Guarulhos", venda: 9079.38, vendaA1: 54949.18, msv: 17.42, msvObj: 19.22 },
+  { loja: "55-Taubaté", venda: 8673.24, vendaA1: 13623.47, msv: 17.11, msvObj: 18.44 },
+  { loja: "77-Jardim Botânico Df", venda: 8279.06, vendaA1: 5898.45, msv: 21.53, msvObj: 21.9 },
+  { loja: "34-São José Do Rio Preto", venda: 7478.72, vendaA1: 12953.73, msv: 22.51, msvObj: 16.95 },
+  { loja: "20-Bh Sul", venda: 4890.56, vendaA1: 5680.18, msv: 17.91, msvObj: 23.35 },
+  { loja: "76-Joinville", venda: 4600.38, vendaA1: 15441.59, msv: 6.67, msvObj: 6.41 },
+  { loja: "29-Uberlândia", venda: 3214.48, vendaA1: 17371.46, msv: 17.61, msvObj: 20.39 }
+];
+
+    let state = {
+      currentSection: "02 - Carpintaria e Madeiras",
+      myStore: "35-Curitiba Atuba",
+      mode: "daily", // 'daily' or 'black'
+      storeMsvRealDaily: 18.20,
+      storeMsvRealBlack: 18.20,
+      storeMsvObj: ATUBA_STORE_OBJ,
+      dailySectionsData: {},
+      blackDaysData: {}
+    };
+
+    function initState() {
+      const saved = localStorage.getItem("bricoblack_2026_v10");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          state = { ...state, ...parsed };
+        } catch (e) {}
+      }
+      SECTIONS.forEach(sec => {
+        if (!state.dailySectionsData[sec] || state.dailySectionsData[sec].length === 0) {
+          state.dailySectionsData[sec] = JSON.parse(JSON.stringify(INITIAL_47_STORES));
+        }
+        const atuba = state.dailySectionsData[sec].find(s => s.loja === "35-Curitiba Atuba");
+        if (atuba && ATUBA_FIXED_TARGETS[sec]) {
+          atuba.msvObj = ATUBA_FIXED_TARGETS[sec];
+        }
+        if (!state.blackDaysData[sec]) {
+          state.blackDaysData[sec] = {};
+        }
+      });
+      if (!state.storeMsvObj) state.storeMsvObj = ATUBA_STORE_OBJ;
+    }
+
+    function saveState() {
+      localStorage.setItem("bricoblack_2026_v10", JSON.stringify(state));
+    }
+
+    function formatBRL(val) {
+      return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+    }
+
+    function formatPct(val) {
+      return (val * 100).toFixed(1).replace(".", ",") + "%";
+    }
+
+    function getActiveStoresForSection(sec) {
+      if (state.mode === "daily") {
+        return state.dailySectionsData[sec] || JSON.parse(JSON.stringify(INITIAL_47_STORES));
+      }
+      const daysMap = state.blackDaysData[sec] || {};
+      const dayKeys = Object.keys(daysMap).sort((a, b) => Number(a) - Number(b));
+      if (dayKeys.length === 0) {
+        return INITIAL_47_STORES.map(st => ({
+          loja: st.loja,
+          venda: 0,
+          vendaA1: 0,
+          msv: 0,
+          msvObj: (st.loja === "35-Curitiba Atuba" && ATUBA_FIXED_TARGETS[sec]) ? ATUBA_FIXED_TARGETS[sec] : st.msvObj
+        }));
+      }
+
+      const accMap = {};
+      dayKeys.forEach(dk => {
+        const rows = daysMap[dk] || [];
+        rows.forEach(r => {
+          if (!accMap[r.loja]) {
+            accMap[r.loja] = {
+              loja: r.loja,
+              venda: 0,
+              vendaA1: 0,
+              msvRS: 0,
+              msvObj: (r.loja === "35-Curitiba Atuba" && ATUBA_FIXED_TARGETS[sec]) ? ATUBA_FIXED_TARGETS[sec] : r.msvObj
+            };
+          }
+          accMap[r.loja].venda += r.venda;
+          accMap[r.loja].vendaA1 += r.vendaA1;
+          accMap[r.loja].msvRS += r.venda * (r.msv / 100);
+        });
+      });
+
+      return Object.values(accMap).map(item => ({
+        loja: item.loja,
+        venda: Number(item.venda.toFixed(2)),
+        vendaA1: Number(item.vendaA1.toFixed(2)),
+        msv: item.venda > 0 ? Number(((item.msvRS / item.venda) * 100).toFixed(4)) : 0,
+        msvObj: item.msvObj
+      }));
+    }
+
+    function renderDropdowns() {
+      const secSel = document.getElementById("sectionSelect");
+      const impSel = document.getElementById("importSectionSelect");
+      secSel.innerHTML = "";
+      impSel.innerHTML = "";
+      SECTIONS.forEach(sec => {
+        const o1 = document.createElement("option");
+        o1.value = sec; o1.textContent = sec;
+        secSel.appendChild(o1);
+
+        const o2 = document.createElement("option");
+        o2.value = sec; o2.textContent = sec;
+        impSel.appendChild(o2);
+      });
+      secSel.value = state.currentSection;
+      impSel.value = state.currentSection;
+
+      const storeSel = document.getElementById("myStoreSelect");
+      const stores = [...INITIAL_47_STORES].sort((a, b) => a.loja.localeCompare(b.loja));
+      storeSel.innerHTML = "";
+      stores.forEach(st => {
+        const opt = document.createElement("option");
+        opt.value = st.loja; opt.textContent = st.loja;
+        storeSel.appendChild(opt);
+      });
+      storeSel.value = state.myStore;
+    }
+
+    function onSectionChange() {
+      state.currentSection = document.getElementById("sectionSelect").value;
+      saveState();
+      recalculateAll();
+    }
+
+    function onMyStoreChange() {
+      state.myStore = document.getElementById("myStoreSelect").value;
+      saveState();
+      recalculateAll();
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      const isBlack = mode === "black";
+      document.getElementById("tabDaily").classList.toggle("active", !isBlack);
+      document.getElementById("tabBlack").classList.toggle("active", isBlack);
+      document.getElementById("blackPanel").classList.toggle("visible", isBlack);
+      document.getElementById("decModeBadge").textContent = isBlack ? "Bloco Black Acumulado (2x)" : "Apuração Diária (1x)";
+      document.getElementById("leftCardHeading").textContent = isBlack
+        ? "Seção & Simulador (Bloco Black Acumulado)"
+        : "Seção & Simulador de Venda (Fase Diária)";
+      document.getElementById("lblVendaAtual").textContent = isBlack ? "Venda Acumulada Bloco (R$)" : "Venda Atual Real (R$)";
+      document.getElementById("lblMargemAtual").textContent = isBlack ? "Margem Ponderada Bloco (%)" : "Margem Atual Seção (%)";
+      recalculateAll();
+    }
+
+    function addExtraSales(delta) {
+      const cur = parseFloat(document.getElementById("extraSalesInput").value) || 0;
+      setExtraSales(cur + delta);
+    }
+
+    function setExtraSales(val) {
+      document.getElementById("extraSalesInput").value = val;
+      recalculateAll();
+    }
+
+    function updateStoreMsvReal(val) {
+      const num = parseFloat(val) || 0;
+      if (state.mode === "black") {
+        state.storeMsvRealBlack = num;
+      } else {
+        state.storeMsvRealDaily = num;
+      }
+      saveState();
+      recalculateAll();
+    }
+
+    function computeRanking(rawStores, extraStoreName, extraSales, extraMarginPct, isBlack2x, avgMode) {
+      const mult = isBlack2x ? 2 : 1;
+      const storeReal = isBlack2x ? (state.storeMsvRealBlack ?? 18.20) : (state.storeMsvRealDaily ?? 18.20);
+      const storeMin = (state.storeMsvObj || ATUBA_STORE_OBJ) * 0.7;
+      const storeDoping = storeReal < storeMin;
+
+      const list = rawStores.map(st => {
+        let venda = st.venda;
+        let msvPct = st.msv;
+        if (st.loja === extraStoreName && extraSales > 0) {
+          const msvValOrig = st.venda * (st.msv / 100);
+          const msvValExtra = extraSales * (extraMarginPct / 100);
+          venda = st.venda + extraSales;
+          msvPct = venda > 0 ? ((msvValOrig + msvValExtra) / venda) * 100 : st.msv;
+        }
+        const progPct = st.vendaA1 > 0 ? (venda - st.vendaA1) / st.vendaA1 : 0;
+        const progRS = venda - st.vendaA1;
+        const isMyStore = st.loja === extraStoreName;
+        const msvMin = isMyStore ? (st.msvObj * 0.7) : 0;
+        const secDoping = isMyStore && venda > 0 ? (msvPct < msvMin) : false;
+        const doping = isMyStore ? (secDoping || storeDoping) : false;
+        return {
+          ...st,
+          vendaSim: venda,
+          msvSim: msvPct,
+          msvMin,
+          secDoping,
+          storeDoping: isMyStore ? storeDoping : false,
+          doping,
+          progPct,
+          progRS
+        };
+      });
+
+      const totalVenda = list.reduce((acc, s) => acc + s.vendaSim, 0);
+      const totalVendaA1 = list.reduce((acc, s) => acc + s.vendaA1, 0);
+      const avgPct = avgMode === "weighted"
+        ? (totalVendaA1 > 0 ? (totalVenda - totalVendaA1) / totalVendaA1 : 0)
+        : list.reduce((acc, s) => acc + s.progPct, 0) / list.length;
+      const avgRS = list.reduce((acc, s) => acc + s.progRS, 0) / list.length;
+
+      const abovePct = list.filter(s => s.progPct > avgPct && s.vendaSim > 0).sort((a, b) => b.progPct - a.progPct);
+      const mapPct = {};
+      abovePct.forEach((s, idx) => { mapPct[s.loja] = abovePct.length - idx; });
+
+      const aboveRS = list.filter(s => s.progRS > avgRS && s.vendaSim > 0).sort((a, b) => b.progRS - a.progRS);
+      const mapRS = {};
+      aboveRS.forEach((s, idx) => { mapRS[s.loja] = aboveRS.length - idx; });
+
+      list.forEach(s => {
+        s.ptsPct = (mapPct[s.loja] || 0) * mult;
+        s.ptsRS = (mapRS[s.loja] || 0) * mult;
+        s.rawTotal = s.ptsPct + s.ptsRS;
+        s.totalPts = s.doping ? 0 : s.rawTotal;
+      });
+
+      list.sort((a, b) => b.totalPts - a.totalPts || b.progPct - a.progPct);
+      list.forEach((s, idx) => { s.rank = idx + 1; });
+
+      return { list, avgPct, avgRS, countAbovePct: abovePct.length, countAboveRS: aboveRS.length };
+    }
+
+    function renderBlackDaysPills() {
+      const container = document.getElementById("blackDaysPills");
+      container.innerHTML = "";
+      const daysMap = state.blackDaysData[state.currentSection] || {};
+      BLACK_DAYS.forEach(d => {
+        const loaded = Boolean(daysMap[d.day] && daysMap[d.day].length > 0);
+        const pill = document.createElement("div");
+        pill.className = "day-pill" + (loaded ? " loaded" : "");
+        if (loaded) {
+          pill.innerHTML = `<span>✓ Dia ${d.day} • ${d.label}</span><button title="Remover este dia" onclick="removeBlackDay(${d.day})">✕</button>`;
+        } else {
+          pill.innerHTML = `<span>Dia ${d.day} • ${d.label}</span>`;
+        }
+        container.appendChild(pill);
+      });
+    }
+
+    function removeBlackDay(dayNum) {
+      if (state.blackDaysData[state.currentSection]) {
+        delete state.blackDaysData[state.currentSection][dayNum];
+        saveState();
+        recalculateAll();
+      }
+    }
+
+    function clearCurrentSectionBlackBlock() {
+      if (!confirm(`Limpar todos os dias lançados do Bloco Black na seção ${state.currentSection}?`)) return;
+      state.blackDaysData[state.currentSection] = {};
+      saveState();
+      recalculateAll();
+    }
+
+    function recalculateAll() {
+      const isBlack = state.mode === "black";
+      const stores = getActiveStoresForSection(state.currentSection);
+      const extraSales = Math.max(0, parseFloat(document.getElementById("extraSalesInput").value) || 0);
+      const extraMargin = parseFloat(document.getElementById("extraMarginInput").value) || 0;
+      const avgMode = document.getElementById("avgModeSelect").value;
+
+      const baseRes = computeRanking(stores, state.myStore, 0, extraMargin, isBlack, avgMode);
+      const simRes = computeRanking(stores, state.myStore, extraSales, extraMargin, isBlack, avgMode);
+
+      const meBase = baseRes.list.find(s => s.loja === state.myStore);
+      const meSim = simRes.list.find(s => s.loja === state.myStore);
+
+      // Left card readonly inputs
+      document.getElementById("displayVendaAtual").value = formatBRL(meBase.venda);
+      document.getElementById("displayMargemAtual").value = meBase.msv.toFixed(2).replace(".", ",") + "%";
+
+      // Right card Dados da Seção
+      const secShort = state.currentSection.split(" - ")[0];
+      document.getElementById("secShortBadge").textContent = "Seção " + secShort;
+      document.getElementById("kvVendaA1").textContent = formatBRL(meBase.vendaA1);
+      document.getElementById("kvMetaSec").textContent = meBase.msvObj.toFixed(2).replace(".", ",") + "%";
+      document.getElementById("kvMinSec").textContent = meBase.msvMin.toFixed(2).replace(".", ",") + "%";
+      document.getElementById("kvPtsDetail").textContent = meBase.doping
+        ? `0 pts (Zerado - Bruto: ${meBase.rawTotal})`
+        : `${meBase.totalPts} pts (${meBase.ptsPct} + ${meBase.ptsRS})`;
+
+      // Single Clean Store Doping Strip
+      const storeReal = isBlack ? (state.storeMsvRealBlack ?? 18.20) : (state.storeMsvRealDaily ?? 18.20);
+      const storeMin = (state.storeMsvObj || ATUBA_STORE_OBJ) * 0.7;
+      const storeDop = storeReal < storeMin;
+      const strip = document.getElementById("storeDopingStrip");
+      const statusTxt = document.getElementById("storeDopingStatusText");
+      document.getElementById("storeMsvRealInput").value = storeReal;
+      if (storeDop) {
+        strip.classList.add("danger");
+        statusTxt.style.color = "#ef4444";
+        statusTxt.textContent = "🚨 LOJA DOPANDO (Zera todas!)";
+      } else {
+        strip.classList.remove("danger");
+        statusTxt.style.color = "#4ade80";
+        statusTxt.textContent = "✓ OK";
+      }
+
+      // Decision Panel 3 Boxes
+      document.getElementById("decRankVal").textContent = `${meBase.rank}º → ${meSim.rank}º`;
+      const rDiff = meBase.rank - meSim.rank;
+      document.getElementById("decRankSub").textContent = rDiff > 0 ? `Subiu ${rDiff} posições!` : (rDiff < 0 ? `Caiu ${Math.abs(rDiff)} pos` : "Mesma posição entre 47 lojas");
+
+      document.getElementById("decPtsVal").textContent = `${meBase.totalPts} → ${meSim.totalPts} pts`;
+      const pDiff = meSim.totalPts - meBase.totalPts;
+      document.getElementById("decPtsSub").textContent = (pDiff >= 0 ? "+" : "") + pDiff + " pts na simulação";
+
+      const dopBox = document.getElementById("decDopingBox");
+      const mVal = document.getElementById("decMarginVal");
+      const mSub = document.getElementById("decMarginSub");
+      mVal.textContent = meSim.msvSim.toFixed(2).replace(".", ",") + "%";
+      if (meSim.doping) {
+        dopBox.classList.add("danger");
+        mVal.className = "dec-big red";
+        mSub.style.color = "#fca5a5";
+        mSub.textContent = meSim.storeDoping ? "Doping Global da Loja ativo!" : `Abaixo do mínimo (${meSim.msvMin.toFixed(2).replace(".", ",")}%) — ZERA!`;
+      } else {
+        dopBox.classList.remove("danger");
+        mVal.className = "dec-big amber";
+        mSub.style.color = "#4ade80";
+        mSub.textContent = `Mínimo: ${meSim.msvMin.toFixed(2).replace(".", ",")}% • Margem sob controle`;
+      }
+
+      // Advice Banner
+      const banner = document.getElementById("simAdviceBanner");
+      const loadedDaysCount = Object.keys(state.blackDaysData[state.currentSection] || {}).length;
+      if (isBlack && loadedDaysCount === 0 && extraSales === 0) {
+        banner.className = "advice-bar";
+        banner.innerHTML = `📌 <b>Bloco Black vazio nesta seção:</b> Clique em <b>"+ Lançar Dia do Bloco"</b> para subir o Dia 1 (23/11). Conforme você subir os dias seguintes, o painel acumula automaticamente e dobra os pontos (2x).`;
+      } else if (meSim.storeDoping) {
+        banner.className = "advice-bar danger";
+        banner.innerHTML = `🚨 <b>DOPING GLOBAL DA LOJA:</b> A margem da Loja Atuba (${storeReal.toFixed(2).replace(".", ",")}%) está abaixo de <b>12,66%</b>, zerando todas as seções.`;
+      } else if (meSim.secDoping) {
+        banner.className = "advice-bar danger";
+        const neededMsv = (meSim.vendaSim * (meSim.msvMin / 100)) - (meSim.vendaSim * (meSim.msvSim / 100));
+        banner.innerHTML = `⚠️ <b>ALERTA DE DOPING NA SEÇÃO:</b> Margem projetada caiu para <b>${meSim.msvSim.toFixed(2).replace(".", ",")}%</b> (piso: ${meSim.msvMin.toFixed(2).replace(".", ",")}%) e zera os ${meSim.rawTotal} pts. Recupere <b>${formatBRL(Math.max(0, neededMsv))}</b> de margem${isBlack ? " nos próximos dias do bloco" : ""}.`;
+      } else if (extraSales > 0) {
+        const minAllowedExtra = Math.max(0, ((meSim.vendaSim * (meSim.msvMin / 100)) - (meBase.vendaSim * (meBase.msvSim / 100))) / extraSales * 100);
+        banner.className = "advice-bar success";
+        banner.innerHTML = `✅ <b>Queima Segura (+${formatBRL(extraSales)}):</b> Você ganha <b>+${pDiff} pts</b> (${meBase.rank}º → ${meSim.rank}º). Margem mínima aceitável nesses pedidos extras sem dopar: <b>${minAllowedExtra.toFixed(1).replace(".", ",")}%</b>.`;
+      } else {
+        const fatMarginRS = meBase.vendaSim * ((meBase.msvSim - meBase.msvMin) / 100);
+        banner.className = "advice-bar";
+        banner.innerHTML = `ℹ️ Folga de margem ${isBlack ? "acumulada no bloco" : "na seção"}: <b>+${(meBase.msvSim - meBase.msvMin).toFixed(2).replace(".", ",")} p.p.</b> (<b>${formatBRL(Math.max(0, fatMarginRS))}</b> de gordura disponível acima do piso de ${meBase.msvMin.toFixed(2).replace(".", ",")}%).`;
+      }
+
+      // Steps
+      renderSteps(stores, meBase, extraMargin, isBlack, avgMode);
+
+      // Black Block Panel
+      if (isBlack) {
+        renderBlackDaysPills();
+        document.getElementById("bkBaseA1").textContent = formatBRL(meSim.vendaA1);
+        document.getElementById("bkVendaAtual").textContent = formatBRL(meSim.vendaSim);
+        document.getElementById("bkPts2x").textContent = `${meSim.totalPts} pts`;
+        document.getElementById("bkMsvAcc").textContent = meSim.msvSim.toFixed(2).replace(".", ",") + "%";
+      }
+
+      // Commit button
+      const commitBtn = document.getElementById("commitSaleBtn");
+      commitBtn.disabled = extraSales <= 0 || isBlack;
+      commitBtn.title = isBlack ? "Na aba Bloco Black, atualize os dados reais importando o fechamento do dia" : "";
+      commitBtn.textContent = extraSales > 0 && !isBlack ? `✅ Efetivar +${formatBRL(extraSales)} na Base` : "✅ Efetivar Venda na Base";
+
+      // Table
+      document.getElementById("tableTitle").textContent = `Ranking Nacional ${isBlack ? "Acumulado Bloco Black (2x)" : "em Tempo Real"} — ${state.currentSection} (47 Lojas)`;
+      document.getElementById("tableSub").textContent = `Média Nacional %: ${formatPct(simRes.avgPct)} (${simRes.countAbovePct} lojas acima) • Média Nacional R$: ${formatBRL(simRes.avgRS)} (${simRes.countAboveRS} lojas acima)`;
+
+      const search = document.getElementById("searchStoreInput").value.toLowerCase().trim();
+      const tbody = document.getElementById("rankingTbody");
+      tbody.innerHTML = "";
+      simRes.list.forEach(st => {
+        if (search && !st.loja.toLowerCase().includes(search)) return;
+        const isMe = st.loja === state.myStore;
+        const tr = document.createElement("tr");
+        if (isMe) tr.classList.add("my-store");
+        if (st.doping) tr.classList.add("doping-row");
+
+        tr.innerHTML = `
+          <td><b>${st.rank}º</b></td>
+          <td class="left">${isMe ? "👉 " : ""}${st.loja}${isMe && st.doping ? ' <span class="badge-dop">DOPING</span>' : ""}</td>
+          <td>${formatBRL(st.vendaSim)}</td>
+          <td>${formatBRL(st.vendaA1)}</td>
+          <td style="color:${st.progPct >= simRes.avgPct ? "#4ade80" : "#f87171"}; font-weight:700;">${formatPct(st.progPct)}</td>
+          <td style="color:#94a3b8; font-size:12px;">${formatPct(simRes.avgPct)}</td>
+          <td class="col-pts">${st.doping ? 0 : st.ptsPct}</td>
+          <td style="color:${st.progRS >= simRes.avgRS ? "#4ade80" : "#f87171"}; font-weight:700;">${formatBRL(st.progRS)}</td>
+          <td style="color:#94a3b8; font-size:12px;">${formatBRL(simRes.avgRS)}</td>
+          <td class="col-pts">${st.doping ? 0 : st.ptsRS}</td>
+          <td style="font-weight:700;">${st.msvSim.toFixed(1).replace(".", ",")}%</td>
+          <td class="col-total">${st.totalPts}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderSteps(stores, meBase, extraMargin, isBlack, avgMode) {
+      const targets = [
+        { label: "+1 ponto", minGain: isBlack ? 2 : 1 },
+        { label: "+3 pontos", minGain: isBlack ? 6 : 3 },
+        { label: "+5 pontos", minGain: isBlack ? 10 : 5 },
+        { label: "Top 10", targetRank: 10 },
+        { label: "Top 5", targetRank: 5 }
+      ];
+      const container = document.getElementById("stepsList");
+      container.innerHTML = "";
+
+      targets.forEach(t => {
+        let foundExtra = null;
+        let resRank = meBase.rank;
+        if (t.targetRank && meBase.rank <= t.targetRank) {
+          container.innerHTML += `<div class="step-chip"><div style="font-size:11px; color:var(--text-muted);">${t.label}</div><div style="font-size:13px; font-weight:800; color:#4ade80;">✓ Já está (${meBase.rank}º)</div></div>`;
+          return;
+        }
+        let low = 100, high = 300000;
+        for (let i = 0; i < 22; i++) {
+          const mid = Math.round((low + high) / 2 / 100) * 100;
+          const res = computeRanking(stores, state.myStore, mid, extraMargin, isBlack, avgMode);
+          const me = res.list.find(s => s.loja === state.myStore);
+          const ok = !me.doping && (t.minGain ? (me.totalPts - meBase.totalPts) >= t.minGain : me.rank <= t.targetRank);
+          if (ok) { foundExtra = mid; resRank = me.rank; high = mid - 100; } else { low = mid + 100; }
+        }
+        if (foundExtra !== null) {
+          const div = document.createElement("div");
+          div.className = "step-chip";
+          div.onclick = () => setExtraSales(foundExtra);
+          div.innerHTML = `<div style="font-size:11px; color:var(--text-muted);">${t.label} (${resRank}º)</div><div style="font-size:13px; font-weight:800; color:#a3e635;">+${formatBRL(foundExtra)}</div>`;
+          container.appendChild(div);
+        } else {
+          container.innerHTML += `<div class="step-chip"><div style="font-size:11px; color:var(--text-muted);">${t.label}</div><div style="font-size:12px; color:#64748b;">Trava MSV / &gt;300k</div></div>`;
+        }
+      });
+    }
+
+    function commitSimulatedSale() {
+      if (state.mode === "black") return;
+      const extraSales = Math.max(0, parseFloat(document.getElementById("extraSalesInput").value) || 0);
+      const extraMargin = parseFloat(document.getElementById("extraMarginInput").value) || 0;
+      if (extraSales <= 0) return;
+      const stores = state.dailySectionsData[state.currentSection];
+      const me = stores.find(s => s.loja === state.myStore);
+      if (!me) return;
+      const msvValOrig = me.venda * (me.msv / 100);
+      const msvValExtra = extraSales * (extraMargin / 100);
+      const newVenda = me.venda + extraSales;
+      const newMsv = newVenda > 0 ? ((msvValOrig + msvValExtra) / newVenda) * 100 : me.msv;
+      me.venda = Number(newVenda.toFixed(2));
+      me.msv = Number(newMsv.toFixed(2));
+      saveState();
+      setExtraSales(0);
+    }
+
+    // Modals & Import
+    function openImportModal() {
+      const isBlack = state.mode === "black";
+      document.getElementById("importSectionSelect").value = state.currentSection;
+      document.getElementById("importBlackDayRow").style.display = isBlack ? "flex" : "none";
+      document.getElementById("importModalTitle").textContent = isBlack
+        ? "🔥 Importar Dia do Bloco Black (23/11 – 30/11)"
+        : "📊 Importar Relatório Diário (.xlsx / Colar)";
+      if (isBlack) {
+        const daysMap = state.blackDaysData[state.currentSection] || {};
+        const nextDay = BLACK_DAYS.find(d => !daysMap[d.day])?.day || 1;
+        document.getElementById("importBlackDaySelect").value = String(nextDay);
+      }
+      document.getElementById("importModal").classList.add("open");
+    }
+    function closeImportModal() { document.getElementById("importModal").classList.remove("open"); }
+
+    function openGuideModal() { document.getElementById("guideModal").classList.add("open"); }
+    function closeGuideModal() { document.getElementById("guideModal").classList.remove("open"); }
+
+    function openMarginModal() {
+      const tbody = document.getElementById("marginModalTbody");
+      tbody.innerHTML = "";
+      SECTIONS.forEach(sec => {
+        const stores = getActiveStoresForSection(sec);
+        const st = stores.find(s => s.loja === "35-Curitiba Atuba");
+        if (!st) return;
+        const minVal = st.msvObj * 0.7;
+        const dop = st.venda > 0 && st.msv < minVal;
+        tbody.innerHTML += `<tr>
+          <td class="left" style="font-weight:600;">${sec}</td>
+          <td>${st.msv.toFixed(2).replace(".", ",")}%</td>
+          <td style="font-weight:700;">${st.msvObj.toFixed(2).replace(".", ",")}%</td>
+          <td style="color:#f59e0b; font-weight:700;">${minVal.toFixed(2).replace(".", ",")}%</td>
+          <td style="color:${dop ? "#ef4444" : "#4ade80"}; font-weight:700;">${dop ? "DOPING" : "OK"}</td>
+        </tr>`;
+      });
+      document.getElementById("marginModal").classList.add("open");
+    }
+    function closeMarginModal() { document.getElementById("marginModal").classList.remove("open"); }
+
+    function parseBrazilianNumber(val) {
+      if (typeof val === "number") return val;
+      if (!val) return 0;
+      let str = String(val).trim().replace(/R\$/g, "").replace(/\s/g, "").replace(/%/g, "");
+      if (str === "-" || str === "") return 0;
+      if (str.includes(",") && str.includes(".")) str = str.replace(/\./g, "").replace(",", ".");
+      else if (str.includes(",")) str = str.replace(",", ".");
+      return parseFloat(str) || 0;
+    }
+
+    function normalizePct(val) {
+      if (typeof val === "number") return Math.abs(val) <= 1.5 ? val * 100 : val;
+      const s = String(val || "");
+      const num = parseBrazilianNumber(s);
+      if (s.includes("%")) return num;
+      return Math.abs(num) <= 1.5 ? num * 100 : num;
+    }
+
+    function applyImportedRows(rows, targetSec) {
+      const existing = state.dailySectionsData[targetSec] || INITIAL_47_STORES;
+      const updated = [];
+      rows.forEach(r => {
+        const loja = String(r.Loja || r.loja || r[0] || "").trim();
+        if (!loja || loja.toLowerCase().includes("express") || loja.toLowerCase() === "loja" || loja.toLowerCase() === "total") return;
+        const venda = parseBrazilianNumber(r.Venda ?? r.venda ?? r[1]);
+        const vendaA1 = parseBrazilianNumber(r["Venda A-1"] ?? r["Venda N-1"] ?? r.vendaA1 ?? r[2]);
+        const msv = normalizePct(r["%MSV"] ?? r["MSV %"] ?? r.msv ?? r[5]);
+        const msvA1 = normalizePct(r["%MSV A-1"] ?? r.msvA1 ?? r[6]);
+        const prev = existing.find(e => e.loja.toLowerCase() === loja.toLowerCase());
+        const msvObj = (loja === "35-Curitiba Atuba" && ATUBA_FIXED_TARGETS[targetSec])
+          ? ATUBA_FIXED_TARGETS[targetSec]
+          : (prev ? prev.msvObj : (msvA1 > 0 ? msvA1 : 19.0));
+        updated.push({ loja, venda, vendaA1, msv, msvObj });
+      });
+
+      if (updated.length >= 10) {
+        state.currentSection = targetSec;
+        if (state.mode === "black") {
+          const dayNum = parseInt(document.getElementById("importBlackDaySelect").value) || 1;
+          if (!state.blackDaysData[targetSec]) state.blackDaysData[targetSec] = {};
+          state.blackDaysData[targetSec][dayNum] = updated;
+          saveState();
+          renderDropdowns();
+          recalculateAll();
+          closeImportModal();
+          alert(`🔥 Sucesso! Dia ${dayNum} do Bloco Black salvo e somado na seção ${targetSec} (${updated.length} lojas).`);
+        } else {
+          state.dailySectionsData[targetSec] = updated;
+          saveState();
+          renderDropdowns();
+          recalculateAll();
+          closeImportModal();
+          alert(`✅ Sucesso! ${updated.length} lojas físicas atualizadas na Fase Diária (${targetSec}).`);
+        }
+      } else {
+        alert("⚠️ Não foi possível identificar as linhas das lojas.");
+      }
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const targetSec = document.getElementById("importSectionSelect").value;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonRows = XLSX.utils.sheet_to_json(firstSheet, { defval: 0 });
+        applyImportedRows(jsonRows, targetSec);
+        event.target.value = "";
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function processPastedText() {
+      const text = document.getElementById("pasteArea").value.trim();
+      if (!text) return;
+      const targetSec = document.getElementById("importSectionSelect").value;
+      const lines = text.split(/\r?\n/).map(line => line.split(/\t|;/));
+      applyImportedRows(lines, targetSec);
+    }
+
+    function downloadGitHubHTML() {
+      const htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+      const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "index.html";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    initState();
+    renderDropdowns();
+    recalculateAll();
+  </script>
+</body>
+</html>
