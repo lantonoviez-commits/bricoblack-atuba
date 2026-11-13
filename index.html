@@ -1558,9 +1558,7 @@
     function pasteExpurgoProductTable() {
       const text = document.getElementById("expPasteArea").value.trim();
       if (!text) return;
-      const lines = text.split(/
-?
-/).map(line => line.split(/	|;/));
+      const lines = text.split(/\r?\n/).map(line => line.split(/\t|;/));
       crossCheckSoldProducts(lines);
       document.getElementById("expPasteArea").value = "";
     }
