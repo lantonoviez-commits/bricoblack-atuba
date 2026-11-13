@@ -372,6 +372,7 @@
       <div class="topbar-btns">
         <button class="btn" onclick="openGuideModal()">📘 Como Usar (Guia)</button>
         <button class="btn" onclick="openImportModal()">📊 Importar Relatório (.xlsx)</button>
+        <button class="btn" onclick="openExpurgoModal()">🚫 Lista de Expurgos <span id="expurgoBadgeCount" style="background:#f59e0b; color:#0f172a; border-radius:999px; padding:1px 7px; font-size:11px; font-weight:800; margin-left:2px;">0</span></button>
         <button class="btn" onclick="openMarginModal()">⚙️ Metas da Loja (15 Seções)</button>
         <button class="btn" onclick="downloadGitHubHTML()">⬇ Baixar index.html</button>
         <span class="btn-pill-green">BricoBlack 2026</span>
@@ -500,6 +501,10 @@
             <span class="kv-key">MSV DOPPING Seção (-30%)</span>
             <span id="kvMinSec" class="kv-val amber">13,13%</span>
           </div>
+          <div class="kv-row" style="cursor:pointer;" onclick="openExpurgoModal()" title="Clique para gerenciar itens de expurgo desta seção">
+            <span class="kv-key">Expurgos Descontados (s/ Doping) ↗</span>
+            <span id="kvExpurgoVal" class="kv-val amber">R$ 0 (0 itens)</span>
+          </div>
           <div class="kv-row">
             <span class="kv-key">Pontuação Atual (Prog % + Prog R$)</span>
             <span id="kvPtsDetail" class="kv-val green">0 pts (0 + 0)</span>
@@ -543,7 +548,7 @@
         </div>
 
         <div id="decDopingBox" class="dec-box">
-          <div class="dec-label">Margem Projetada vs MSV Dopping Mínimo</div>
+          <div class="dec-label" id="decMarginLabel">Margem Efetiva (s/ Expurgos) vs Mínimo</div>
           <div id="decMarginVal" class="dec-big amber">21,09%</div>
           <div id="decMarginSub" class="dec-sub" style="color:#4ade80;">Mínimo: 13,13% • Margem sob controle</div>
         </div>
@@ -713,6 +718,75 @@
     </div>
   </div>
 
+  <!-- EXPURGO MODAL -->
+  <div id="expurgoModal" class="modal-backdrop">
+    <div class="modal" style="max-width:740px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:16px; color:#fff;">🚫 Lista de Expurgos — 35-Curitiba Atuba</h3>
+        <button class="btn" style="padding:4px 10px;" onclick="closeExpurgoModal()">✕</button>
+      </div>
+      <div style="font-size:12.5px; color:var(--text-muted);">
+        Cadastre os itens ou pedidos autorizados para <b>Expurgo</b> (avarias, queimas autorizadas, encartes/campanhas expurgadas) na seção <b id="expModalSecName" style="color:#a3e635;">02 - Carpintaria e Madeiras</b>. O sistema desconta esses valores do cálculo de margem da Atuba para evitar falso alerta de Doping.
+      </div>
+
+      <!-- Quick Add Form -->
+      <div style="background:#11191d; border:1px solid #2b3a42; border-radius:10px; padding:12px; display:grid; grid-template-columns: 1.1fr 2fr 1.1fr 0.9fr auto; gap:8px; align-items:end;">
+        <div class="field">
+          <label style="font-size:11px;">LM / Código</label>
+          <input type="text" id="expLmInput" class="light-input" placeholder="Ex: 89451230" style="padding:7px 9px; font-size:12.5px;" />
+        </div>
+        <div class="field">
+          <label style="font-size:11px;">Descrição / Motivo</label>
+          <input type="text" id="expDescInput" class="light-input" placeholder="Ex: Avaria / Liquidação" style="padding:7px 9px; font-size:12.5px;" />
+        </div>
+        <div class="field">
+          <label style="font-size:11px;">Venda Vendida (R$)</label>
+          <input type="number" id="expVendaInput" class="light-input" placeholder="2500" step="10" style="padding:7px 9px; font-size:12.5px;" />
+        </div>
+        <div class="field">
+          <label style="font-size:11px;">Margem Item (%)</label>
+          <input type="number" id="expMsvInput" class="light-input" placeholder="-5.0" step="0.5" style="padding:7px 9px; font-size:12.5px;" />
+        </div>
+        <button class="btn btn-primary" style="padding:8px 14px; font-size:12.5px; height:35px;" onclick="addExpurgoItem()">+ Incluir</button>
+      </div>
+
+      <!-- Bulk Paste Option -->
+      <div style="display:flex; gap:8px; align-items:center;">
+        <textarea id="expPasteArea" class="light-input" rows="2" style="flex:1; font-family:monospace; font-size:11.5px; padding:7px 10px;" placeholder="Ou cole várias linhas do Excel: LM [TAB] Descrição [TAB] Venda R$ [TAB] Margem %"></textarea>
+        <button class="btn" style="white-space:nowrap;" onclick="pasteExpurgoList()">Colar Lista</button>
+      </div>
+
+      <!-- Summary Strip -->
+      <div id="expSummaryStrip" style="background:#11191d; border:1px solid #243238; border-radius:8px; padding:9px 12px; display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; font-size:12.5px;">
+        <span>Total Expurgado: <b id="expTotVenda" style="color:#f59e0b;">R$ 0</b></span>
+        <span>Margem Bruta Seção: <b id="expBrutaPct">0,00%</b></span>
+        <span>Margem Efetiva (s/ Expurgos): <b id="expEfetivaPct" style="color:#4ade80;">0,00%</b></span>
+      </div>
+
+      <!-- List Table -->
+      <div style="max-height:240px; overflow-y:auto; border:1px solid var(--border-card); border-radius:8px;">
+        <table>
+          <thead>
+            <tr>
+              <th class="left">LM / Código</th>
+              <th class="left">Descrição / Motivo</th>
+              <th>Venda (R$)</th>
+              <th>MSV % Item</th>
+              <th>Impacto MSV R$</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="expurgoTbody"></tbody>
+        </table>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <button class="btn btn-danger-outline" style="font-size:12px;" onclick="clearSectionExpurgos()">Limpar Expurgos da Seção</button>
+        <button class="btn btn-primary" onclick="closeExpurgoModal()">Concluir</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const SECTIONS = [
       "01 - Materiais de Construção",
@@ -820,11 +894,12 @@
       storeMsvRealBlack: 18.20,
       storeMsvObj: ATUBA_STORE_OBJ,
       dailySectionsData: {},
-      blackDaysData: {}
+      blackDaysData: {},
+      expurgosBySection: {}
     };
 
     function initState() {
-      const saved = localStorage.getItem("bricoblack_2026_v10");
+      const saved = localStorage.getItem("bricoblack_2026_v11");
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
@@ -847,7 +922,7 @@
     }
 
     function saveState() {
-      localStorage.setItem("bricoblack_2026_v10", JSON.stringify(state));
+      localStorage.setItem("bricoblack_2026_v11", JSON.stringify(state));
     }
 
     function formatBRL(val) {
@@ -984,25 +1059,40 @@
       const storeMin = (state.storeMsvObj || ATUBA_STORE_OBJ) * 0.7;
       const storeDoping = storeReal < storeMin;
 
+      const expList = state.expurgosBySection[state.currentSection] || [];
+      const expVendaTot = expList.reduce((acc, it) => acc + (Number(it.venda) || 0), 0);
+      const expMsvRSTot = expList.reduce((acc, it) => acc + ((Number(it.venda) || 0) * ((Number(it.msv) || 0) / 100)), 0);
+
       const list = rawStores.map(st => {
         let venda = st.venda;
-        let msvPct = st.msv;
+        let msvPctBruta = st.msv;
         if (st.loja === extraStoreName && extraSales > 0) {
           const msvValOrig = st.venda * (st.msv / 100);
           const msvValExtra = extraSales * (extraMarginPct / 100);
           venda = st.venda + extraSales;
-          msvPct = venda > 0 ? ((msvValOrig + msvValExtra) / venda) * 100 : st.msv;
+          msvPctBruta = venda > 0 ? ((msvValOrig + msvValExtra) / venda) * 100 : st.msv;
         }
+        const isMyStore = st.loja === extraStoreName;
+        let msvPctEfetiva = msvPctBruta;
+        if (isMyStore && expVendaTot > 0 && venda > expVendaTot) {
+          const totalMsvRS = venda * (msvPctBruta / 100);
+          const validVenda = venda - expVendaTot;
+          const validMsvRS = totalMsvRS - expMsvRSTot;
+          msvPctEfetiva = validVenda > 0 ? (validMsvRS / validVenda) * 100 : msvPctBruta;
+        }
+
         const progPct = st.vendaA1 > 0 ? (venda - st.vendaA1) / st.vendaA1 : 0;
         const progRS = venda - st.vendaA1;
-        const isMyStore = st.loja === extraStoreName;
         const msvMin = isMyStore ? (st.msvObj * 0.7) : 0;
-        const secDoping = isMyStore && venda > 0 ? (msvPct < msvMin) : false;
+        const secDoping = isMyStore && venda > 0 ? (msvPctEfetiva < msvMin) : false;
         const doping = isMyStore ? (secDoping || storeDoping) : false;
         return {
           ...st,
           vendaSim: venda,
-          msvSim: msvPct,
+          msvBruta: msvPctBruta,
+          msvSim: msvPctEfetiva,
+          expVendaTot: isMyStore ? expVendaTot : 0,
+          expCount: isMyStore ? expList.length : 0,
           msvMin,
           secDoping,
           storeDoping: isMyStore ? storeDoping : false,
@@ -1095,6 +1185,8 @@
       document.getElementById("kvVendaA1").textContent = formatBRL(meBase.vendaA1);
       document.getElementById("kvMetaSec").textContent = meBase.msvObj.toFixed(2).replace(".", ",") + "%";
       document.getElementById("kvMinSec").textContent = meBase.msvMin.toFixed(2).replace(".", ",") + "%";
+      document.getElementById("kvExpurgoVal").textContent = `${formatBRL(meBase.expVendaTot)} (${meBase.expCount} ${meBase.expCount === 1 ? "item" : "itens"})`;
+      document.getElementById("expurgoBadgeCount").textContent = String(meBase.expCount);
       document.getElementById("kvPtsDetail").textContent = meBase.doping
         ? `0 pts (Zerado - Bruto: ${meBase.rawTotal})`
         : `${meBase.totalPts} pts (${meBase.ptsPct} + ${meBase.ptsRS})`;
@@ -1129,16 +1221,20 @@
       const mVal = document.getElementById("decMarginVal");
       const mSub = document.getElementById("decMarginSub");
       mVal.textContent = meSim.msvSim.toFixed(2).replace(".", ",") + "%";
+      const expNote = meSim.expCount > 0 ? ` (Bruta: ${meSim.msvBruta.toFixed(2).replace(".", ",")}%)` : "";
+      document.getElementById("decMarginLabel").textContent = meSim.expCount > 0
+        ? "Margem Efetiva (s/ Expurgos) vs Mínimo"
+        : "Margem Projetada vs MSV Dopping Mínimo";
       if (meSim.doping) {
         dopBox.classList.add("danger");
         mVal.className = "dec-big red";
         mSub.style.color = "#fca5a5";
-        mSub.textContent = meSim.storeDoping ? "Doping Global da Loja ativo!" : `Abaixo do mínimo (${meSim.msvMin.toFixed(2).replace(".", ",")}%) — ZERA!`;
+        mSub.textContent = meSim.storeDoping ? "Doping Global da Loja ativo!" : `Abaixo do mínimo (${meSim.msvMin.toFixed(2).replace(".", ",")}%) — ZERA!${expNote}`;
       } else {
         dopBox.classList.remove("danger");
         mVal.className = "dec-big amber";
         mSub.style.color = "#4ade80";
-        mSub.textContent = `Mínimo: ${meSim.msvMin.toFixed(2).replace(".", ",")}% • Margem sob controle`;
+        mSub.textContent = `Mínimo: ${meSim.msvMin.toFixed(2).replace(".", ",")}% • Sob controle${expNote}`;
       }
 
       // Advice Banner
@@ -1286,6 +1382,116 @@
       document.getElementById("importModal").classList.add("open");
     }
     function closeImportModal() { document.getElementById("importModal").classList.remove("open"); }
+
+    // Expurgo List Management
+    function openExpurgoModal() {
+      document.getElementById("expModalSecName").textContent = state.currentSection;
+      renderExpurgoModal();
+      document.getElementById("expurgoModal").classList.add("open");
+    }
+    function closeExpurgoModal() {
+      document.getElementById("expurgoModal").classList.remove("open");
+      recalculateAll();
+    }
+    function renderExpurgoModal() {
+      const sec = state.currentSection;
+      const list = state.expurgosBySection[sec] || [];
+      const tbody = document.getElementById("expurgoTbody");
+      tbody.innerHTML = "";
+
+      let totVenda = 0;
+      list.forEach((item, idx) => {
+        const v = Number(item.venda) || 0;
+        const m = Number(item.msv) || 0;
+        const impact = v * (m / 100);
+        totVenda += v;
+        tbody.innerHTML += `<tr>
+          <td class="left" style="font-weight:700; color:#a3e635;">${item.lm || "-"}</td>
+          <td class="left">${item.desc || "-"}</td>
+          <td>${formatBRL(v)}</td>
+          <td style="color:${m < 0 ? "#ef4444" : "#fbbf24"}; font-weight:700;">${m.toFixed(2).replace(".", ",")}%</td>
+          <td>${formatBRL(impact)}</td>
+          <td><button class="btn btn-danger-outline" style="padding:2px 8px; font-size:11px;" onclick="removeExpurgoItem(${idx})">✕</button></td>
+        </tr>`;
+      });
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="color:var(--text-muted); padding:16px;">Nenhum item de expurgo cadastrado nesta seção.</td></tr>`;
+      }
+
+      const stores = getActiveStoresForSection(sec);
+      const me = stores.find(s => s.loja === state.myStore);
+      const baseRes = computeRanking(stores, state.myStore, 0, 15, state.mode === "black", document.getElementById("avgModeSelect").value);
+      const meCalc = baseRes.list.find(s => s.loja === state.myStore);
+
+      document.getElementById("expTotVenda").textContent = formatBRL(totVenda);
+      document.getElementById("expBrutaPct").textContent = (me ? me.msv.toFixed(2).replace(".", ",") : "0,00") + "%";
+      document.getElementById("expEfetivaPct").textContent = (meCalc ? meCalc.msvSim.toFixed(2).replace(".", ",") : "0,00") + "%";
+    }
+    function addExpurgoItem() {
+      const lm = document.getElementById("expLmInput").value.trim();
+      const desc = document.getElementById("expDescInput").value.trim();
+      const venda = parseFloat(document.getElementById("expVendaInput").value) || 0;
+      const msv = parseFloat(document.getElementById("expMsvInput").value);
+      if (venda <= 0 || isNaN(msv)) {
+        alert("Informe a Venda (R$) e a Margem (%) do item de expurgo.");
+        return;
+      }
+      if (!state.expurgosBySection[state.currentSection]) {
+        state.expurgosBySection[state.currentSection] = [];
+      }
+      state.expurgosBySection[state.currentSection].push({ lm, desc, venda, msv });
+      saveState();
+      document.getElementById("expLmInput").value = "";
+      document.getElementById("expDescInput").value = "";
+      document.getElementById("expVendaInput").value = "";
+      document.getElementById("expMsvInput").value = "";
+      renderExpurgoModal();
+      recalculateAll();
+    }
+    function pasteExpurgoList() {
+      const text = document.getElementById("expPasteArea").value.trim();
+      if (!text) return;
+      if (!state.expurgosBySection[state.currentSection]) {
+        state.expurgosBySection[state.currentSection] = [];
+      }
+      let added = 0;
+      text.split(/\r?\n/).forEach(line => {
+        const parts = line.split(/\t|;/);
+        if (parts.length >= 3) {
+          const lm = parts[0].trim();
+          const desc = parts.length >= 4 ? parts[1].trim() : "Expurgo";
+          const venda = parseBrazilianNumber(parts.length >= 4 ? parts[2] : parts[1]);
+          const msv = normalizePct(parts.length >= 4 ? parts[3] : parts[2]);
+          if (venda > 0) {
+            state.expurgosBySection[state.currentSection].push({ lm, desc, venda, msv });
+            added++;
+          }
+        }
+      });
+      if (added > 0) {
+        saveState();
+        document.getElementById("expPasteArea").value = "";
+        renderExpurgoModal();
+        recalculateAll();
+      } else {
+        alert("⚠️ Formato esperado: LM [TAB] Descrição [TAB] Venda R$ [TAB] Margem %");
+      }
+    }
+    function removeExpurgoItem(idx) {
+      if (state.expurgosBySection[state.currentSection]) {
+        state.expurgosBySection[state.currentSection].splice(idx, 1);
+        saveState();
+        renderExpurgoModal();
+        recalculateAll();
+      }
+    }
+    function clearSectionExpurgos() {
+      state.expurgosBySection[state.currentSection] = [];
+      saveState();
+      renderExpurgoModal();
+      recalculateAll();
+    }
 
     function openGuideModal() { document.getElementById("guideModal").classList.add("open"); }
     function closeGuideModal() { document.getElementById("guideModal").classList.remove("open"); }
