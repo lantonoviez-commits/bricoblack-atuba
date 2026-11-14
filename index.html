@@ -671,7 +671,7 @@
 
   <!-- GUIA COMO USAR MODAL -->
   <div id="guideModal" class="modal-backdrop">
-    <div class="modal" style="max-width:700px;">
+    <div class="modal" style="max-width:720px;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h3 style="font-size:16px; color:#fff;">📘 Como Usar o Radar & Simulador BricoBlack 2026</h3>
         <button class="btn" style="padding:4px 10px;" onclick="closeGuideModal()">✕</button>
@@ -686,16 +686,26 @@
       </div>
 
       <div class="guide-step">
-        <h4>2. Como Importar o Relatório do Qlik</h4>
+        <h4>2. Como Importar o Relatório Geral de Lojas (Qlik)</h4>
         <ul>
-          <li>Exporte do Qlik a tabela com as colunas: <code>Loja | Venda | Venda A-1 | Prog % | Objetivo | %MSV | %MSV A-1</code>.</li>
+          <li>Exporte do Qlik a tabela por loja com as colunas: <code>Loja | Venda | Venda A-1 | Prog % | Objetivo | %MSV | %MSV A-1</code>.</li>
           <li>Clique em <b>📊 Importar Relatório (.xlsx)</b>, selecione a <b>Seção Destino</b> (e na aba Bloco Black escolha também qual <b>Dia do Bloco</b> está subindo) e selecione o arquivo.</li>
           <li>As <b>7 lojas Express</b> são excluídas automaticamente, mantendo apenas as <b>47 lojas físicas (GSB + Compactas)</b>. Se reimportar um mesmo dia do Bloco Black, ele atualiza apenas aquele dia sem duplicar valores.</li>
         </ul>
       </div>
 
       <div class="guide-step">
-        <h4>3. Regra de Pontuação Oficial</h4>
+        <h4>3. Conferência Automática de Expurgos (🚫 Lista de Expurgos)</h4>
+        <ul>
+          <li>A lista oficial com os <b>1.014 LMs em exceção de doping</b> já está embutida no sistema.</li>
+          <li>Se uma seção acusar Doping, clique em <b>🚫 Lista de Expurgos</b> no topo e suba ou cole o relatório de <b>Vendas por Produto do Qlik</b> (<code>Regional | Loja | Seção | LM | Produto | Venda Bruta | Qtd | Margem | MSV %</code>).</li>
+          <li>O painel cruza automaticamente todos os produtos vendidos com a lista oficial, desconta a venda e a margem dos itens expurgados e exibe a <b>Margem Efetiva (s/ Expurgos)</b>, liberando os pontos caso o Doping tenha sido causado por itens autorizados.</li>
+          <li>Use também o campo de busca rápida dentro do modal para consultar qualquer código <b>LM</b> antes de fechar uma negociação.</li>
+        </ul>
+      </div>
+
+      <div class="guide-step">
+        <h4>4. Regra de Pontuação Oficial</h4>
         <ul>
           <li>São avaliados dois rankings independentes: <b>Progressão %</b> e <b>Progressão R$</b> contra o ano anterior (N-1).</li>
           <li>Apenas as lojas que ficarem <b>acima da Média Nacional</b> pontuam. Se <i>N</i> lojas superarem a média em um critério, o 1º lugar ganha <i>N</i> pontos, o 2º ganha <i>N-1</i>, até o último acima da média ganhar 1 ponto.</li>
@@ -703,9 +713,9 @@
       </div>
 
       <div class="guide-step">
-        <h4>4. Trava Anti-Doping (-30%) & Queima de Carteira</h4>
+        <h4>5. Trava Anti-Doping (-30%) & Simulador de Queima</h4>
         <ul>
-          <li><b>Trava por Seção:</b> A margem real da seção não pode cair mais de 30% abaixo da Meta MSV (metas da <b>35-Curitiba Atuba</b> já travadas em <i>⚙️ Metas da Loja</i>).</li>
+          <li><b>Trava por Seção:</b> A margem efetiva da seção não pode cair mais de 30% abaixo da Meta MSV (metas da <b>35-Curitiba Atuba</b> já travadas em <i>⚙️ Metas da Loja</i>).</li>
           <li><b>Regra no Bloco Black (23–30/11):</b> Você pode passar dos -30% em um dia isolado (ex: Sexta Black) para queimar carteira, desde que a <b>MSV % ponderada acumulada dos 8 dias</b> feche acima do piso mínimo!</li>
           <li><b>Trava Global da Loja Atuba:</b> Se a margem geral da loja (informada no campo <i>MSV Loja</i>) ficar abaixo de <b>12,66%</b> (70% de 18,09%), <b>todas as 15 seções zeram a pontuação</b>.</li>
           <li><b>Simulador:</b> Digite um valor extra em R$ e a margem da negociação para ver quantos pontos ganha. Na Fase Diária, ao fechar a venda, clique em <b>✅ Efetivar Venda na Base</b>.</li>
